@@ -27,7 +27,7 @@ notes = {}
 playing = false
 
 -- ui elements
-pages = ui.Pages.new(1,4)
+pages = ui.Pages.new(1,3)
 p1_loc = 1
 p2_loc = 1
 osc_dials = {}
