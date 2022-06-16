@@ -104,10 +104,12 @@ function play(r)
   if params:get(r.."_s2") == 1 then
     -- collect s2 info
     if params:get("s2_length") == s2.ix then
-      s2:reset()
+      s2:reset(1)
     end
-    redraw()
     local p2 = s2()
+    if pages.index == 2 then
+      redraw()
+    end
     local n2 = params:get("o4_mod")
     -- determine note 1
     n2 = params:get("s2_o4") == 1 and notes[n2 + p2] or notes[n2]
