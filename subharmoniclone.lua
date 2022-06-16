@@ -127,6 +127,53 @@ function play(r)
   end
 end
 
+-- softcut code borrowed from https://github.com/ambalek/fall/ 
+local function softcut_delay(ch, time, feedback, rate, level)
+  softcut.level(ch, level)
+  softcut.level_slew_time(ch, 0)
+  softcut.level_input_cut(ch, 1, 1.0)
+  softcut.level_input_cut(ch, 2, 1.0)
+  softcut.pan(ch, 0.0)
+  softcut.play(ch, 1)
+  softcut.rate(ch, rate)
+  softcut.rate_slew_time(ch, 0)
+  softcut.loop_start(ch, 0)
+  softcut.loop_end(ch, time)
+  softcut.loop(ch, 1)
+  softcut.fade_time(ch, 0.1)
+  softcut.rec(ch, 1)
+  softcut.rec_level(ch, 1)
+  softcut.pre_level(ch, feedback)
+  softcut.position(ch, 0)
+  softcut.enable(ch, 1)
+  softcut.pre_filter_dry(ch, 0)
+  softcut.pre_filter_hp(ch, 1.0)
+  softcut.pre_filter_fc(ch, 300)
+  softcut.pre_filter_rq(ch, 4.0)
+end
+
+local function apply_delays()
+  softcut_delay(1,
+    params:get("long_delay_time"), params:get("long_delay_feedback"), 1.0, params:get("long_delay_level")
+  )
+  softcut_delay(2,
+    params:get("short_delay_time"), params:get("short_delay_feedback"), 1.0, params:get("short_delay_level")
+  )
+end
+
+local function softcut_setup()
+  softcut.reset()
+  for i = 1, 2 do
+    softcut.position(i, 0)
+    softcut.rate(0, 1)
+  end
+  softcut.buffer_clear()
+  audio.level_cut(1.0)
+  audio.level_adc_cut(1)
+  audio.level_eng_cut(1)
+  apply_delays()
+end
+
 function init()
   -- TODO: add modulations params w/ lfo & s+h
   -- TODO: add a softcut delay option
@@ -209,6 +256,24 @@ function init()
   params:add{type = "number", id = "root_note", name = "root note",
     min = 0, max = 127, default = 60, formatter = function(param) return MusicUtil.note_num_to_name(param:get(), true) end,
     action = function() build_scale() end}
+  
+  params:add_separator("time and delays")
+  params:add_taper("short_delay_time", "short delay", 1, 5, 1, 0.01, "sec")
+  params:set_action("short_delay_time", function(value) softcut.loop_end(2, value) end)
+  params:add_taper("short_delay_level", "short delay gain", 0, 1, 0, 0.01, "")
+  params:set_action("short_delay_level", function(value) softcut.level(2, value) end)
+  params:add_taper("short_delay_feedback", "short delay feedback", 0, 1, 0.5, 0.01)
+  params:set_action("short_delay_feedback", function()
+    apply_delays()
+  end)
+  params:add_taper("long_delay_time", "long delay", 1, 50, 10, 0.1, "sec")
+  params:set_action("long_delay_time", function(value) softcut.loop_end(1, value) end)
+  params:add_taper("long_delay_level", "long delay gain", 0, 1, 0, 0.01, "")
+  params:set_action("long_delay_level", function(value) softcut.level(1, value) end)
+  params:add_taper("long_delay_feedback", "long delay feedback", 0, 1, 0.5, 0.01)
+  params:set_action("long_delay_feedback", function()
+    apply_delays()
+  end)
 
   -- do lattice stuff
   -- https://monome.org/docs/norns/reference/lib/lattice
@@ -419,7 +484,6 @@ function redraw()
       screen.fill()
     end
   elseif pages.index == 2 then
-    print(s1.ix, s2.ix)
     screen.move(s1_sliders[s1.ix].x,s1_sliders[s1.ix].y)
     screen.text('-')
     screen.move(s2_sliders[s2.ix].x,s2_sliders[s2.ix].y)
