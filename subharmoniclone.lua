@@ -81,8 +81,11 @@ function play(r)
     -- collect s1 info
     if params:get("s1_length") == s1.ix then
       s1:select(1)
+      m1:select(1)
     end
     local p1 = s1()
+    local pp1 = m1()
+    print(p1, pp1)
     if pages.index == 2 then
       redraw()
     end
@@ -97,16 +100,20 @@ function play(r)
     local d3 = params:get("s1_o3") == 1 and params:get("o3_mod") + p1 or params:get("o3_mod")
     local f3 = f1 / d3
     -- play notes
-    engine.trig(1,f1)
-    engine.trig(2,f2)
-    engine.trig(3,f3)
+    if pp1 == 0 then
+      engine.trig(1,f1)
+      engine.trig(2,f2)
+      engine.trig(3,f3)
+    end
   end
   if params:get(r.."_s2") == 1 then
     -- collect s2 info
     if params:get("s2_length") == s2.ix then
-      s2:reset(1)
+      s2:select(1)
+      m2:select(1)
     end
     local p2 = s2()
+    local pp2 = m2()
     if pages.index == 2 then
       redraw()
     end
@@ -121,9 +128,11 @@ function play(r)
     local d6 = params:get("s2_o6") == 1 and params:get("o6_mod") + p2 or params:get("o6_mod")
     local f6 = f4 / d6
     -- play notes
-    engine.trig(4,f4)
-    engine.trig(5,f5)
-    engine.trig(6,f6)
+    if pp2 == 0 then
+      engine.trig(4,f4)
+      engine.trig(5,f5)
+      engine.trig(6,f6)
+    end
   end
 end
 
@@ -153,6 +162,8 @@ local function softcut_delay(ch, time, feedback, rate, level)
 end
 
 local function apply_delays()
+  -- TODO: stereo delay with panning
+  -- TODO: filtering
   softcut_delay(1,
     params:get("long_delay_time"), params:get("long_delay_feedback"), 1.0, params:get("long_delay_level")
   )
@@ -216,6 +227,9 @@ function init()
   -- TODO: allow accenting
   s1 = s{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
   s2 = s{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
+  -- TODO: mutes
+  m1 = s{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
+  m2 = s{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
   
   params:add_separator("sequence 1")
   params:add_number("s1_length", "seq 1 length", 1, 16, 8)
@@ -380,11 +394,33 @@ function enc(n,d)
       -- change the highlighted seq value
       -- e.g. s1[location] = value
       if p2_loc <= 16 then
-        s1_sliders[p2_loc]:set_value_delta(d)
-        s1[p2_loc] = s1_sliders[p2_loc].value
+        if alt == 1 then
+          for i=1,16 do
+            if d > 0 then 
+              s1_sliders[i]:set_value_delta(math.random(0,d))
+            else
+              s1_sliders[i]:set_value_delta(math.random(d,0))
+            end
+            s1[i] = s1_sliders[i].value
+          end
+        else
+          s1_sliders[p2_loc]:set_value_delta(d)
+          s1[p2_loc] = s1_sliders[p2_loc].value
+        end
       else
-        s2_sliders[p2_loc-16]:set_value_delta(d)
-        s2[p2_loc-16] = s2_sliders[p2_loc-16].value
+        if alt == 1 then
+          for i=1,16 do
+            if d > 0 then 
+              s2_sliders[i]:set_value_delta(math.random(0,d))
+            else
+              s2_sliders[i]:set_value_delta(math.random(d,0))
+            end
+            s2[i] = s2_sliders[i].value
+          end
+        else
+          s2_sliders[p2_loc-16]:set_value_delta(d)
+          s2[p2_loc-16] = s2_sliders[p2_loc-16].value
+        end
       end
     end
   elseif pages.index == 3 then
@@ -426,6 +462,13 @@ function key(n,z)
     if alt == 1 then
     -- TODO: key to drone (k1 + k2 on any screen)
     end
+    if pages.index == 2 then
+      if p2_loc <= 16 then
+        m1[p2_loc] = m1[p2_loc] == 0 and 1 or 0
+      else
+        m2[p2_loc-16] = m2[p2_loc-16] == 0 and 1 or 0
+      end
+    end
   end
   
   if n == 3 and z == 1 then
@@ -455,6 +498,7 @@ function redraw()
   pages:redraw()
   if pages.index == 1 then
     -- screen 1: notes, subdivisions, & rhythms
+    -- TODO: switch from dials to a table for more compact view
     for i = 1,6 do
       if i == p1_loc then
         osc_dials[i].active = true
@@ -463,12 +507,12 @@ function redraw()
       end
       osc_dials[i]:redraw()
       if (i == 1 or i == 4) then
-        screen.move(osc_dials[i].x+8,osc_dials[i].y+26)
-        screen.text(MusicUtil.note_num_to_name(notes[params:get('o'..i..'_mod')]))
+        screen.move(osc_dials[i].x+10,osc_dials[i].y+26)
+        screen.text_center(MusicUtil.note_num_to_name(notes[params:get('o'..i..'_mod')]))
         screen.fill()
       else
-        screen.move(osc_dials[i].x+8,osc_dials[i].y+26)
-        screen.text(params:get('o'..i..'_mod'))
+        screen.move(osc_dials[i].x+10,osc_dials[i].y+26)
+        screen.text_center(params:get('o'..i..'_mod')..'/16')
         screen.fill()
       end
     end
@@ -479,8 +523,8 @@ function redraw()
         r_dials[i].active = false
       end
       r_dials[i]:redraw()
-      screen.move(r_dials[i].x+8,r_dials[i].y+26)
-      screen.text(params:get('rhythm_'..i))
+      screen.move(r_dials[i].x+10,r_dials[i].y+26)
+      screen.text_center(params:get('rhythm_'..i)..'/16')
       screen.fill()
     end
   elseif pages.index == 2 then
