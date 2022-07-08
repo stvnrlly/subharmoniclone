@@ -40,14 +40,18 @@ Rows 4 and 8 control the page, which correspond to the pages on the Norns UI: os
 
 The rightmost key of those rows 4 and 8 is the alt key.
 
-[image]
+### Oscillators
+
+<img width="529" alt="grid p 1" src="https://user-images.githubusercontent.com/4156602/177902492-64d91a23-a3da-4ba3-a0b9-c4fa29c79067.png">
 
 - Row 1 controls the root note
 - Row 2 controls the first subdivision
 - Row 3 controls the second subdivision
 - Hold alt to adjust oscillator levels
 
-[image]
+### Sequences
+
+<img width="529" alt="grid p 2" src="https://user-images.githubusercontent.com/4156602/177902534-d699e9d2-8887-45ab-9d7f-338cd6ccdc2d.png">
 
 Sequence pitches are arranged left to right.
 
@@ -59,7 +63,9 @@ The third row shows the current step. While holding the alt key, pressing a step
 
 The two buttons near the alt key switch between forward and backward sequence progression.
 
-[image]
+### Routing
+
+<img width="529" alt="grid p 3" src="https://user-images.githubusercontent.com/4156602/177902572-d8bd751d-9e8a-4e21-a785-2f7a01f477cc.png">
 
 The three groups are oscillators, sequences, and rhythms.
 
