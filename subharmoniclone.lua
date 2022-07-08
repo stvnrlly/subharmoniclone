@@ -369,7 +369,7 @@ function init()
   
   -- engine preferences
   params:set('all_amp',0.2)
-  params:set('all_release',0.7)
+  params:set('all_release',1.5)
   params:set('all_cutoff_env',0)
   -- run this here in order to load notes for the selected scale
   -- TODO: maybe this is better as a param action?
