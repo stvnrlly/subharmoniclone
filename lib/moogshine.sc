@@ -1,7 +1,7 @@
 // SC class exercise 3: third (and final) adaptation
 // 8-voice polyphony + smoothing
 
-Moonshine {
+Moogshine {
 
 	// NEW: add local 'voiceKeys' variable to register each voice name separately
 	classvar <voiceKeys;
@@ -23,7 +23,7 @@ Moonshine {
 
 			s.waitForBoot {
 
-				SynthDef("Moonshine", {
+				SynthDef("Moogshine", {
 					arg out = 0, stopGate = 1,
 					freq, sub_div,
 					cutoff, resonance, cutoff_env, // NEW: add 'cutoff_env'
@@ -113,7 +113,7 @@ Moonshine {
 		// NEW: set '\freq' parameter for this voice to incoming 'freq' value
 		voiceParams[voiceKey][\freq] = freq;
 		// NEW: make sure to index each of our tables with our 'voiceKey'
-		Synth.new("Moonshine", [\freq, freq] ++ voiceParams[voiceKey].getPairs, singleVoices[voiceKey]);
+		Synth.new("Moogshine", [\freq, freq] ++ voiceParams[voiceKey].getPairs, singleVoices[voiceKey]);
 	}
 
 	trigger { arg voiceKey, freq;

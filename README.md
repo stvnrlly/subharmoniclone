@@ -4,6 +4,8 @@ A synth for Monome Norns based on the Moog Subharmonicon.
 
 Move between the pages with E1.
 
+Attach a Grid 128 for more control.
+
 ## Page 1: Oscillators & rhythms
 
 Move with E2, adjust with E3.
@@ -12,11 +14,13 @@ On the left-ish side, there are dials for the oscillator groups:
 - a frequency dial for the main oscillator, which moves that groups base note up the scale
 - a subdivision dial for each suboscillator, from 1/1 through 1/16
 
-One the right-ish side, the 4 rhtyhms, each moving from 1/1 to 1/16.
+One the right-ish side, the 4 rhythm divisions, each moving from 1/1 to 1/16.
 
 ## Page 2: Sequences
 
-Move with E2, adjust with E3.
+Move with E2, adjust with E3. Press K2 to mute the highlighted step.
+
+Hold K1 while adjusting E3 to randomize the current sequence.
 
 Sequence 1 is on top, sequence 2 below.
 
@@ -27,6 +31,39 @@ Select a left-hand source with E2, a destination with E3. Press K3 to toggle the
 ## Beyond
 
 See the params menu for way more options, including panning, filters, quantization, and more.
+
+## Grid
+
+The top 4 rows control oscillators 1-3 and sequence 1. The bottom 4 rows control oscillators 4-6 and sequence 6.
+
+Rows 4 and 8 control the page, which correspond to the pages on the Norns UI: oscillators, sequences, and routing. 
+
+The rightmost key of those rows 4 and 8 is the alt key.
+
+[image]
+
+- Row 1 controls the root note
+- Row 2 controls the first subdivision
+- Row 3 controls the second subdivision
+- Hold alt to adjust oscillator levels
+
+[image]
+
+Sequence pitches are arranged left to right.
+
+Pressing the top row increases that step's pitch. While holding the alt key, it randomly increases all pitches.
+
+Pressing the second row decreases that step's pitch. While holding the alt key, it randomly decreases all pitches.
+
+The third row shows the current step. While holding the alt key, pressing a step will adjust the sequence length.
+
+The two buttons near the alt key switch between forward and backward sequence progression.
+
+[image]
+
+The three groups are oscillators, sequences, and rhythms.
+
+Holding one will show valid routes. Pressing an option will connect or disconnect that route.
 
 ## Install
 

@@ -1,4 +1,4 @@
-Engine_Moonshine : CroneEngine {
+Engine_Moogshine : CroneEngine {
 // All norns engines follow the 'Engine_MySynthName' convention above
 
 	// NEW: select a variable to invoke Moonshine with
@@ -12,7 +12,7 @@ Engine_Moonshine : CroneEngine {
 
 		// NEW: since Moonshine is now a supercollider Class,
 		//   we can just construct an instance of it
-		kernel = Moonshine.new(Crone.server);
+		kernel = Moogshine.new(Crone.server);
 
 		// NEW: build an 'engine.trig(x,y)' command,
 		//   x: voice, y: freq

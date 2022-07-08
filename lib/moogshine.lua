@@ -1,7 +1,4 @@
--- this file easily adds Moonshine parameters to a host script
--- save it as 'moonshine.lua' under 'code > engine_study > lib'
-
-local Moonshine = {}
+local Moogshine = {}
 local ControlSpec = require 'controlspec'
 local Formatters = require 'formatters'
 
@@ -32,8 +29,8 @@ local specs = {
 }
 
 -- initialize parameters:
-function Moonshine.add_params()
-  params:add_separator("Moonshine")
+function Moogshine.add_params()
+  params:add_separator("Moogshine")
   local voices = {"all",1,2,3,4,5,6,7,8} -- match the engine's expected arguments for commands
   for i = 1,#voices do -- for each voice...
     params:add_group("voice ["..voices[i].."]",#specs) -- add a PARAMS group, eg. 'voice [all]'
@@ -90,4 +87,4 @@ function Moonshine.add_params()
 end
 
  -- we return these engine-specific Lua functions back to the host script:
-return Moonshine
+return Moogshine

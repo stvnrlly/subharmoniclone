@@ -13,8 +13,8 @@
 -- load engine
 -- TODO: add waveform mix controls
 -- TODO: add pulsewidth for square wave
-engine.name='Moonshine'
-moonshine_setup = include 'lib/moonshine'
+engine.name='Moogshine'
+moogshine_setup = include 'lib/moogshine'
 
 -- ___ engine commands ___
 -- amp	 	sf
@@ -45,6 +45,11 @@ UI = require 'ui'
 scale_names = {}
 notes = {}
 alt = 0
+alt_1 = 0
+alt_2 = 0
+local g = grid.connect()
+local g_page_1 = 1
+local g_page_2 = 1
 
 -- ui elements
 screen.aa(1)
@@ -55,6 +60,12 @@ osc_dials = {}
 r_dials = {}
 s1_sliders = {}
 s2_sliders = {}
+
+------------
+-- 
+-- UTILITIES
+-- 
+-- 
 
 function build_scale()
   notes = MusicUtil.generate_scale_of_length(params:get("root_note"), params:get("scale_mode"), 32)
@@ -72,20 +83,41 @@ function shrink(str)
   return out
 end
 
+function amp2grid(i)
+  return util.round(util.linlin(0,2,1,16,i),1)
+end
+
+function grid2amp(i)
+  return util.linlin(1,16,0,2,i)
+end
+
+--------------------- 
+-- 
+-- ENGINE INTERACTION
+-- 
+-- 
+
 function play(r)
   -- when a rhythm triggers, it advances the connected sequences
   -- when the sequence advances, it triggers envelopes for connected oscillators
   -- osc pitch = notes[osc note value + seq value]
   -- sub pitch = osc frequency / (sub div value + seq value)
+  grid_redraw()
   if params:get(r.."_s1") == 1 then
     -- collect s1 info
-    if params:get("s1_length") == s1.ix then
-      s1:select(1)
-      m1:select(1)
+    if params:get("s1_dir") == 1 then
+      if params:get("s1_length") == s1.ix then
+        s1:select(1)
+        m1:select(1)
+      end
+    elseif params:get("s1_dir") == 2 then
+      if s1.ix == 1 then
+        s1:select(params:get("s1_length"))
+        m1:select(params:get("s1_length"))
+      end
     end
     local p1 = s1()
     local pp1 = m1()
-    print(p1, pp1)
     if pages.index == 2 then
       redraw()
     end
@@ -136,6 +168,12 @@ function play(r)
   end
 end
 
+---------- 
+-- 
+-- SOFTCUT
+-- 
+-- 
+
 -- softcut code borrowed from https://github.com/ambalek/fall/ 
 local function softcut_delay(ch, time, feedback, rate, level)
   softcut.level(ch, level)
@@ -163,7 +201,7 @@ end
 
 local function apply_delays()
   -- TODO: stereo delay with panning
-  -- TODO: filtering
+  -- TODO: softcut filtering
   softcut_delay(1,
     params:get("long_delay_time"), params:get("long_delay_feedback"), 1.0, params:get("long_delay_level")
   )
@@ -185,11 +223,17 @@ local function softcut_setup()
   apply_delays()
 end
 
+-------- 
+-- 
+-- SETUP
+-- 
+-- 
+
 function init()
   -- TODO: add modulations params w/ lfo & s+h
-  -- TODO: add a softcut delay option
   -- TODO: consistently use 0 or 1 as minimum
-  -- TODO: do menu param changes need an action to update ui elements?
+  -- TODO: put sequences into tables for better iteration
+  -- TODO: logic options for rhythms
   params:add_separator("SUBHARMONICLONE")
   
   -- TODO: implement start/stop stuff w/ key combo
@@ -216,29 +260,28 @@ function init()
   -- TODO: save these for PSET callback: https://monome.org/docs/norns/reference/params#pset-saveload-callback
   -- TODO: seq values can be negative
   -- TODO: allow cross-patching sequences to oscillators
-  -- TODO: consider awake approach: https://github.com/tehn/awake/blob/73d4accfc090aaab58f1586eaf4d9cf54d3cff01/awake.lua#L62-L86
-    -- store seq values as params
-    -- then load those values into sequins
-  -- TODO: option to randomize seq
-  -- TODO: options for seq direction
+  -- TODO: options for seq direction // challenging because of seq length
   -- TODO: notes can come from midi instead
   -- TODO: adapt sequence size based on number of notes in scale
-  -- TODO: allow muting notes
   -- TODO: allow accenting
   s1 = s{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
   s2 = s{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
-  -- TODO: mutes
+  -- TODO: visual indicator of muting
   m1 = s{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
   m2 = s{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
   
   params:add_separator("sequence 1")
   params:add_number("s1_length", "seq 1 length", 1, 16, 8)
+  params:add_option("s1_dir","seq 1 direction", {"forward","backward"}, 1)
+  params:set_action("s1_dir",function(x) if x == 1 then s1:step(1) m1:step(1) elseif x == 2 then s1:step(-1) m1:step(-1) end end)
   params:add_binary("s1_o1", "→ osc 1", "toggle")
   params:add_binary("s1_o2", "→ sub 1-1", "toggle")
   params:add_binary("s1_o3", "→ sub 1-2", "toggle")
   
   params:add_separator("sequence 2")
   params:add_number("s2_length", "seq 2 length", 1, 16, 8)
+  params:add_option("s2_dir","seq 2 direction", {"forward","backward"}, 1)
+  params:set_action("s2_dir",function(x) if x == 1 then s2:step(1) m2:step(1) elseif x == 2 then s2:step(-1) m2:step(-1) end end)
   params:add_binary("s2_o4", "→ osc 2", "toggle")
   params:add_binary("s2_o5", "→ sub 2-1", "toggle")
   params:add_binary("s2_o6", "→ sub 2-2", "toggle")
@@ -299,33 +342,34 @@ function init()
   
   rhythm_1 = sub_lattice:new_pattern{
     action = function() play("r1") end,
-    division = 1/params:get("rhythm_1")
+    division = params:get("rhythm_1")
   }
-  params:set_action("rhythm_1",function(x) rhythm_1:set_division(1/x) end)
+  params:set_action("rhythm_1",function(x) rhythm_1:set_division(x) end)
   
   rhythm_2 = sub_lattice:new_pattern{
     action = function() play("r2") end,
-    division = 1/params:get("rhythm_2")
+    division = params:get("rhythm_2")
   }
-  params:set_action("rhythm_2",function(x) rhythm_2:set_division(1/x) end)
+  params:set_action("rhythm_2",function(x) rhythm_2:set_division(x) end)
   
   rhythm_3 = sub_lattice:new_pattern{
     action = function() play("r3") end,
-    division = 1/params:get("rhythm_3")
+    division = params:get("rhythm_3")
   }
-  params:set_action("rhythm_3",function(x) rhythm_3:set_division(1/x) end)
+  params:set_action("rhythm_3",function(x) rhythm_3:set_division(x) end)
   
   rhythm_4 = sub_lattice:new_pattern{
     action = function() play("r4") end,
-    division = 1/params:get("rhythm_4")
+    division = params:get("rhythm_4")
   }
-  params:set_action("rhythm_4",function(x) rhythm_4:set_division(1/x) end)
+  params:set_action("rhythm_4",function(x) rhythm_4:set_division(x) end)
   
   -- load the engine params
-  moonshine_setup.add_params()
+  moogshine_setup.add_params()
   
   -- engine preferences
   params:set('all_amp',0.2)
+  params:set('all_release',0.7)
   params:set('all_cutoff_env',0)
   -- run this here in order to load notes for the selected scale
   -- TODO: maybe this is better as a param action?
@@ -360,6 +404,11 @@ function init()
   sub_lattice:start()
 end
 
+----------- 
+-- 
+-- ENCODERS
+-- 
+-- 
 
 function enc(n,d)
   if n == 1 then
@@ -448,6 +497,12 @@ function enc(n,d)
   redraw()
 end
 
+------- 
+-- 
+-- KEYS
+-- 
+-- 
+
 function key(n,z)
   -- TODO: start/stop (k2 on any screen)
   if n == 1 then
@@ -491,7 +546,11 @@ function key(n,z)
   redraw()
 end
 
-pages:set_index(1)
+---------- 
+-- 
+-- DISPLAY
+-- 
+-- 
 
 function redraw()
   screen.clear()
@@ -542,6 +601,16 @@ function redraw()
     for i = 1,16 do
       s1_sliders[i]:redraw()
       s2_sliders[i]:redraw()
+      if m1[i] == 1 then
+        screen.move(i*6,29)
+        screen.level(4)
+        screen.text('m')
+      end
+      if m2[i] == 1 then
+        screen.move(i*6,62)
+        screen.level(4)
+        screen.text('m')
+      end
     end
   elseif pages.index == 3 then
     -- screen 3: routing
@@ -584,4 +653,351 @@ function redraw()
     -- screen 5: modulation
   end
   screen.update()
+  grid_redraw()
+end
+
+------- 
+-- 
+-- GRID
+-- 
+-- 
+
+local held_1 = {}
+local held_2 = {}
+
+routing_1 = {{"o1","o2","o3"},{},{"s1","s2"},{},{"r1","r2"},{"r3","r4"}}
+routing_2 = {{"o4","o5","o6"},{},{"s1","s2"},{},{"r1","r2"},{"r3","r4"}}
+
+function grid_redraw()
+  -- TODO: lightly blink page 1 leds when note plays, maybe by row?
+  -- TODO: blink playing page 2 seq value
+  -- TODO: a way to switch into rhythm editing mode
+  -- TODO: alt key for more sequence options (once implemented)
+  -- TODO: mute gesture for page 2 seq
+  -- TODO: a way to show all 16 seq values without clamping?
+  
+  g:all(0)
+  
+  -- page options for each group
+  for i = 1,3 do
+    g:led(i,4,4)
+    g:led(i,8,4)
+  end
+  
+  -- show selected page
+  g:led(g_page_1,4,15)
+  g:led(g_page_2,8,15)
+  
+  if alt_1 == 0 then
+    g:led(16,4,4)
+  else
+    g:led(16,4,15)
+  end
+  
+  if alt_2 == 0 then
+    g:led(16,8,4)
+  else
+    g:led(16,8,15)
+  end
+  
+  if g_page_1 == 1 then
+    for i = 1,3 do
+      if alt_1 == 0 then
+        g:led(params:get('o'..i..'_mod'),i,15)
+      else
+        g:led(amp2grid(params:get(i..'_amp')),i,15)
+      end
+    end
+  end
+  
+  if g_page_2 == 1 then
+    for i = 4,6 do
+      if alt_2 == 0 then
+        g:led(params:get('o'..i..'_mod'),i+1,15)
+      else
+        g:led(amp2grid(params:get(i..'_amp')),i+1,15)
+      end
+    end
+  end
+  
+  if g_page_1 == 2 then
+    for i = 1,16 do
+      g:led(i,1,util.clamp(s1[i],0,15))
+      g:led(i,2,util.clamp(15-s1[i],0,15))
+    end
+    g:led(s1.ix,3,15)
+    if alt_1 == 1 then
+      for i = 1,3 do
+        g:led(params:get("s1_length"),i,15)
+      end
+    end
+    g:led(13,4,params:get("s1_dir") == 2 and 15 or 4)
+    g:led(14,4,params:get("s1_dir") == 1 and 15 or 4)
+  end
+    
+  if g_page_2 == 2 then
+    for i = 1,16 do
+      g:led(i,5,util.clamp(s2[i],0,15))
+      g:led(i,6,util.clamp(15-s2[i],0,15))
+    end
+    g:led(s2.ix,7,15)
+    if alt_2 == 1 then
+      for i = 5,7 do
+        g:led(params:get("s2_length"),i,15)
+      end
+    end
+    g:led(13,8,params:get("s2_dir") == 2 and 15 or 4)
+    g:led(14,8,params:get("s2_dir") == 1 and 15 or 4)
+  end
+  
+  if g_page_1 == 3 then
+    if held_1[1] == nil then
+      for x = 1,6 do
+        for y = 1,3 do
+          if routing_1[x] ~= nil then
+            if routing_1[x][y] ~= nil then
+              g:led(x,y,4)
+            end
+          end
+        end
+      end
+    else
+      local h1 = routing_1[held_1[1]][held_1[2]]
+      local h1s = string.sub(h1,1,1)
+      g:led(held_1[1],held_1[2],15)
+      if h1s == "o" then
+        g:led(3,1,params:get('s1_'..h1) == 0 and 4 or 15)
+        g:led(3,2,4)
+      elseif h1s == "r" then
+        for i = 1,2 do
+          g:led(3,i,params:get(h1..'_'..'s'..i) == 0 and 4 or 15)
+        end
+      elseif string.sub(h1,1,1) == "s" then
+        if h1 == "s1" then
+          for i = 1,3 do
+            g:led(1,i,params:get(h1..'_o'..i) == 0 and 4 or 15)
+          end
+        end
+        for i = 1,2 do
+          g:led(5,i,params:get('r'..i..'_'..h1) == 0 and 4 or 15)
+        end
+        for i = 3,4 do
+          g:led(6,(i-2),params:get('r'..i..'_'..h1) == 0 and 4 or 15)
+        end
+      end
+    end
+  end
+  
+  if g_page_2 == 3 then
+    if held_2[1] == nil then
+      for x = 1,6 do
+        for y = 5,7 do
+          if routing_2[x] ~= nil then
+            if routing_2[x][y-4] ~= nil then
+              g:led(x,y,4)
+            end
+          end
+        end
+      end
+    else
+      local h2 = routing_2[held_2[1]][held_2[2]-4]
+      local h2s = string.sub(h2,1,1)
+      g:led(held_2[1],held_2[2],15)
+      if h2s == "o" then
+        g:led(3,5,4)
+        g:led(3,6,params:get('s2_'..h2) == 0 and 4 or 15)
+      elseif h2s == "r" then
+        for i = 1,2 do
+          g:led(3,i+4,params:get(h2..'_'..'s'..i) == 0 and 4 or 15)
+        end
+      elseif string.sub(h2,1,1) == "s" then
+        if h2 == "s2" then
+          for i = 4,6 do
+            g:led(1,i+1,params:get(h2..'_o'..i) == 0 and 4 or 15)
+          end
+        end
+        for i = 1,2 do
+          g:led(5,i+4,params:get('r'..i..'_'..h2) == 0 and 4 or 15)
+        end
+        for i = 3,4 do
+          g:led(6,(i+2),params:get('r'..i..'_'..h2) == 0 and 4 or 15)
+        end
+      end
+    end
+  end
+  
+  g:refresh()
+end
+
+g.key = function(x,y,z)
+  
+  if z == 1 then
+  -- button down
+    if x < 4 and y == 4 then g_page_1 = x end
+    if x < 4 and y == 8 then g_page_2 = x end
+    
+    if g_page_1 == 1 then
+      if y < 4 then
+        if alt_1 == 0 then
+          params:set('o'..y..'_mod',x)
+        else
+          params:set(y..'_amp',grid2amp(x))
+        end
+      end
+    end
+    
+    if g_page_2 == 1 then
+      if y > 4 and y < 8 then
+        if alt_2 == 0 then
+          params:set('o'..(y-1)..'_mod',x)
+        else
+          params:set((y-1)..'_amp',grid2amp(x))
+        end
+      end
+    end
+    
+    if g_page_1 == 2 then
+      if y == 1 then
+        if alt_1 == 1 then
+          for i = 1,16 do
+            s1[i] = util.clamp(s1[i] + math.random(0,1),0,16)
+            s1_sliders[i]:set_value(s1[i])
+          end
+        else
+          s1[x] = util.clamp(s1[x] + 1,0,16)
+        end
+      end
+      if y == 2 then
+        if alt_1 == 1 then
+          for i = 1,16 do
+            s1[i] = util.clamp(s1[i] - math.random(0,1),0,16)
+            s1_sliders[i]:set_value(s1[i])
+          end
+        else
+          s1[x] = util.clamp(s1[x] - 1,0,16)
+          s1_sliders[x]:set_value(s1[x])
+        end
+      end
+      if y == 3 then
+        if alt_1 == 1 then
+          params:set("s1_length",x)
+        end
+      end
+      if x == 13 and y == 4 then
+        params:set("s1_dir",2)
+      elseif x == 14 and y == 4 then
+        params:set("s1_dir",1)
+      end
+    end
+    
+    if g_page_2 == 2 then
+      if y == 5 then
+        if alt_2 == 1 then
+          for i = 1,16 do
+            s2[i] = util.clamp(s2[i] + math.random(0,1),0,16)
+            s2_sliders[i]:set_value(s2[i])
+          end
+        else
+          s2[x] = util.clamp(s2[x] + 1,0,16)
+          s2_sliders[x]:set_value(s2[x])
+        end
+      end
+      if y == 6 then
+        if alt_2 == 1 then
+          for i = 1,16 do
+            s2[i] = util.clamp(s2[i] - math.random(0,1),0,16)
+            s2_sliders[i]:set_value(s2[i])
+          end
+        else
+          s2[x] = util.clamp(s2[x] - 1,0,16)
+          s2_sliders[x]:set_value(s2[x])
+        end
+      end
+      if y == 7 then
+        if alt_2 == 1 then
+          params:set("s2_length",x)
+        end
+      end
+      if x == 13 and y == 8 then
+        params:set("s2_dir",2)
+      elseif x == 14 and y == 8 then
+        params:set("s2_dir",1)
+      end
+    end
+    
+    if g_page_1 == 3 then
+      if y < 4 then
+        if held_1[1] == nil then
+          -- only start connecting if option is valid
+          if routing_1[x] ~= nil then
+            if routing_1[x][y] ~= nil then
+              held_1 = {x,y}
+            end
+          end
+        else
+          local c1 = routing_1[held_1[1]][held_1[2]]
+          local c2 = routing_1[x][y]
+          local param = ""
+          
+          if held_1[1] < x then
+            param = c2.."_"..c1
+          else
+            param = c1.."_"..c2
+          end
+          
+          if params.lookup[param] ~= nil then
+            params:set(param, params:get(param) == 0 and 1 or 0)
+          end
+        end
+      end
+    end
+    
+    if g_page_2 == 3 then
+      if y > 4 and y < 8 then
+        if held_2[1] == nil then
+          -- only start connecting if option is valid
+          if routing_2[x] ~= nil then
+            if routing_2[x][(y-4)] ~= nil then
+              held_2 = {x,y}
+            end
+          end
+        else
+          local c1 = routing_2[held_2[1]][held_2[2]-4]
+          local c2 = routing_2[x][y-4]
+          local param = ""
+          
+          if held_2[1] < x then
+            param = c2.."_"..c1
+          else
+            param = c1.."_"..c2
+          end
+          
+          if params.lookup[param] ~= nil then
+            params:set(param, params:get(param) == 0 and 1 or 0)
+          end
+        end
+      end
+    end
+    
+  end
+  
+  if z == 0 then
+    if held_1[1] == x and held_1[2] == y then
+      held_1 = {}
+    end
+    if held_2[1] == x and held_2[2] == y then
+      held_2 = {}
+    end
+  end
+  
+  -- grid alt buttons
+  if x == 16 and y == 4 then
+    alt_1 = z
+  end
+  if x == 16 and y == 8 then
+    alt_2 = z
+  end
+  
+  redraw()
+  grid_redraw()
 end
