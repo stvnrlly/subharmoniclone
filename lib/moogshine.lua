@@ -13,7 +13,7 @@ end
 local specs = {
   {type = "separator", name = "synthesis"},
   {id = 'amp', name = 'level', type = 'control', min = 0, max = 2, warp = 'lin', default = 1, formatter = function(param) return (round_form(param:get()*100,1,"%")) end},
-  {id = 'sub_div', name = 'sub division', type = 'number', min = 1, max = 10, default = 1},
+  -- {id = 'sub_div', name = 'sub division', type = 'number', min = 1, max = 10, default = 1},
   {id = 'noise_amp', name = 'noise level', type = 'control', min = 0, max = 2, warp = 'lin', default = 0, formatter = function(param) return (round_form(param:get()*100,1,"%")) end},
   {id = 'cutoff', name = 'filter cutoff', type = 'control', min = 20, max = 24000, warp = 'exp', default = 1200, formatter = function(param) return (round_form(param:get(),0.01," hz")) end},
   {id = 'cutoff_env', name = 'filter envelope', type = 'number', min = 0, max = 1, default = 1, formatter = function(param) return (param:get() == 1 and "on" or "off") end},

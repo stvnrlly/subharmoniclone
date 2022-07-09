@@ -1,5 +1,4 @@
 Engine_Moogshine : CroneEngine {
-// All norns engines follow the 'Engine_MySynthName' convention above
 
 	// NEW: select a variable to invoke Moonshine with
 	var kernel;

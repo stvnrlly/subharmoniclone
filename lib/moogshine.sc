@@ -3,20 +3,14 @@
 
 Moogshine {
 
-	// NEW: add local 'voiceKeys' variable to register each voice name separately
 	classvar <voiceKeys;
 
-
-	// NEW: establish 'globalParams' list for all voices
 	var <globalParams;
-	// NEW: establish 'voiceParams' to track the state of each 'globalParams' entry for each voice
 	var <voiceParams;
 	var <voiceGroup;
-	// NEW: add 'singleVoices' variable to control + track single voices
 	var <singleVoices;
 
 	*initClass {
-		// NEW: create voiceKey indices for as many voices as we want control over
 		voiceKeys = [ \1, \2, \3, \4, \5, \6, \7, \8 ];
 		StartUp.add {
 			var s = Server.default;
@@ -25,34 +19,26 @@ Moogshine {
 
 				SynthDef("Moogshine", {
 					arg out = 0, stopGate = 1,
-					freq, sub_div,
-					cutoff, resonance, cutoff_env, // NEW: add 'cutoff_env'
+					freq, cutoff, resonance, cutoff_env,
 					attack, release,
 					amp, noise_amp, pan,
-					// NEW: add slews to different parameters
 					freq_slew, amp_slew, noise_slew, pan_slew;
 
 					var slewed_freq = freq.lag3(freq_slew);
 					var pulse = Pulse.ar(freq: slewed_freq);
 					var saw = Saw.ar(freq: slewed_freq);
-					var sub = Pulse.ar(freq: slewed_freq/sub_div);
-					// NEW: integrate slew using '.lag3'
+					// var sub = Pulse.ar(freq: slewed_freq/sub_div);
 					var noise = WhiteNoise.ar(mul: noise_amp.lag3(noise_slew));
-					// SR: crudely remove sub since it'll muddy up subharmonicon
-					// var mix = Mix.ar([pulse,saw,sub,noise]);
 					var mix = Mix.ar([pulse,saw,noise]);
 
 					var envelope = EnvGen.kr(
-						// NEW: separate 'amp' from the envelope, as it can't be changed after execution
 						envelope: Env.perc(attackTime: attack, releaseTime: release, level: 1),
-						// NEW: add a 'stopGate' to silence previous synth on this voice
 						gate: stopGate,
 						doneAction: 2
 					);
 					// NEW: integrate slew using '.lag3'
 					var filter = MoogFF.ar(
 						in: mix,
-						// NEW: add a comparison to know whether to use the cutoff value, or to envelope:
 						freq: Select.kr(cutoff_env > 0, [cutoff, cutoff * envelope]),
 						gain: resonance
 					);
@@ -78,7 +64,7 @@ Moogshine {
 		// NEW: create a 'globalParams' Dictionary to hold the parameters common to each voice
 		globalParams = Dictionary.newFrom([
 			\freq, 400,
-			\sub_div, 2,
+			// \sub_div, 2,
 			\noise_amp, 0.1,
 			\cutoff, 8000,
 			\cutoff_env, 1,

@@ -334,7 +334,7 @@ function init()
   -- TODO: adapt sequence size based on number of notes in scale
   -- TODO: allow accenting
   s1 = s{8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8}
-  s2 = s{8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8}
+  s2 = s{1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4}
   -- TODO: better visual indicator of muting
   m1 = s{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
   m2 = s{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
