@@ -13,6 +13,7 @@
 -- load engine
 -- TODO: add waveform mix controls
 -- TODO: add pulsewidth for square wave
+-- TODO: add batch command (like all_) for osc groups
 engine.name='Moogshine'
 moogshine_setup = include 'lib/moogshine'
 
@@ -223,9 +224,78 @@ local function softcut_setup()
   apply_delays()
 end
 
--------- 
+------------------- 
 -- 
--- SETUP
+-- LFO & MODULATION
+-- 
+-- 
+
+lfo = include("lib/hnds")
+
+local lfo_types = {"sine", "square", "s+h"}
+local show_lfo_info = {false, false, false, false}
+local lfo_index = nil
+
+local lfo_targets = {
+  "none",
+  "o1_mod", "o2_mod", "o3_mod", "o4_mod", "o5_mod", "o6_mod",
+  "rhythm_1", "rhythm_2", "rhythm_3", "rhythm_4", 
+  "all_amp", "all_cutoff", "all_attack", "all_release", "all_pan", "all_noise_amp",
+  "s1_length", "s2_length",
+  "short_delay_time", "short_delay_level", "short_delay_feedback", 
+  "long_delay_time", "long_delay_level", "long_delay_feedback", 
+  -- more added via loop below
+}
+
+for i = 1,6 do
+  table.insert(lfo_targets, i.."_amp")
+  table.insert(lfo_targets, i.."_cutoff")
+  table.insert(lfo_targets, i.."_attack")
+  table.insert(lfo_targets, i.."_release")
+  table.insert(lfo_targets, i.."_pan")
+  table.insert(lfo_targets, i.."_noise_amp")
+end
+
+function lfo.process()
+  for i = 1, 4 do
+    local target = lfo_targets[params:get(i .. "lfo_target")]
+    
+    -- TODO: can scale be util linlin instead?
+    if params:get(i .. "lfo") == 2 then
+      if string.find(target,"o%d_") ~= nil or string.find(target, "rhythm_") ~= nil or string.find(target, "%d_length") ~= nil then
+        params:set(target, math.floor(lfo.scale(lfo[i].slope, -1, 1, 1, 16))) 
+      elseif string.find(target, "%d_amp") ~= nil or target == "all_amp" then
+        params:set(target, lfo.scale(lfo[i].slope), -1, 1, 0.0, 2.0)
+      elseif string.find(target, "_cutoff") ~= nil then
+        params:set(target, lfo.scale(lfo[i].slope), -1, 1, 0.0, 24000.0)
+      elseif string.find(target, "_attack") ~= nil or string.find(target, "_release") ~= nil then
+        params:set(target, lfo.scale(lfo[i].slope), -1, 1, 0.0, 10.0)
+      elseif string.find(target, "_pan") ~= nil then
+        params:set(target, lfo[i].slope)
+      elseif string.find(target, "_noise_amp") ~= nil then
+        params:set(target, lfo.scale(lfo[i].slope), -1, 1, 0.0, 2.0)
+      elseif target == "short_delay_time" then
+        params:set(target, lfo.scale(lfo[i].slope), -1, 1, 1.0, 5.0)
+      elseif target == "short_delay_level" then
+        params:set(target, lfo.scale(lfo[i].slope), -1, 1, 0.0, 1.0)
+      elseif target == "short_delay_feedback" then
+        params:set(target, lfo.scale(lfo[i].slope), -1, 1, 0.0, 1.0)
+      elseif target == "long_delay_time" then
+        params:set(target, lfo.scale(lfo[i].slope), -1, 1, 1.0, 50.0)
+      elseif target == "long_delay_level" then
+        params:set(target, lfo.scale(lfo[i].slope), -1, 1, 0.0, 1.0)
+      elseif target == "long_delay_feedback" then
+        params:set(target, lfo.scale(lfo[i].slope), -1, 1, 0.0, 1.0)
+      end
+      redraw()
+      grid_redraw()
+    end
+  end
+end
+
+---------------
+-- 
+-- SETUP & INIT
 -- 
 -- 
 
@@ -258,15 +328,14 @@ function init()
   
   -- sequence params
   -- TODO: save these for PSET callback: https://monome.org/docs/norns/reference/params#pset-saveload-callback
-  -- TODO: seq values can be negative
+  -- TODO: seq values can be negative, 
   -- TODO: allow cross-patching sequences to oscillators
-  -- TODO: options for seq direction // challenging because of seq length
   -- TODO: notes can come from midi instead
   -- TODO: adapt sequence size based on number of notes in scale
   -- TODO: allow accenting
-  s1 = s{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
-  s2 = s{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
-  -- TODO: visual indicator of muting
+  s1 = s{8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8}
+  s2 = s{8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8}
+  -- TODO: better visual indicator of muting
   m1 = s{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
   m2 = s{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
   
@@ -288,7 +357,7 @@ function init()
   
   params:add_separator("notes & divisions")
   for i = 1,6 do
-    -- TODO: when seq length changes, should squish notes down to max
+    -- TODO: when scale length changes, should squish notes down to max
     if (i == 1 or i == 4) then
       params:add{type = "number", id = "o"..i.."_mod", name = "osc note",
         min = 1, max = 16, default = 1, formatter = function(param) return MusicUtil.note_num_to_name(notes[param:get()], true) end}
@@ -331,6 +400,12 @@ function init()
   params:set_action("long_delay_feedback", function()
     apply_delays()
   end)
+  
+  -- for lib/hnds
+  for i = 1, 4 do
+    lfo[i].lfo_targets = lfo_targets
+  end
+  lfo.init()
 
   -- do lattice stuff
   -- https://monome.org/docs/norns/reference/lib/lattice
@@ -391,8 +466,8 @@ function init()
   
   -- UI.Slider.new (x, y, width, height, value, min_value, max_value, markers, direction)
   for i = 1,16 do
-    s1_sliders[i] = UI.Slider.new(6*i, 5, 5, 25, 0, 0, 16, {}, "up")
-    s2_sliders[i] = UI.Slider.new(6*i, 38, 5, 25, 0, 0, 16, {}, "up")
+    s1_sliders[i] = UI.Slider.new(6*i, 5, 5, 25, s1[i], 0, 16, {}, "up")
+    s2_sliders[i] = UI.Slider.new(6*i, 38, 5, 25, s2[i], 0, 16, {}, "up")
   end
   
   -- UI.List.new (x, y, index, entries)
@@ -476,7 +551,6 @@ function enc(n,d)
     -- routing
     if n == 2 then
       -- change highlighted source
-      -- TODO: reset dest index, too?
       sources:set_index_delta(d,false)
     end
     if n == 3 then
