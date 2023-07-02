@@ -415,25 +415,25 @@ function init()
     ppqn = 96
   }
   
-  rhythm_1 = sub_lattice:new_pattern{
+  rhythm_1 = sub_lattice:new_sprocket{
     action = function() play("r1") end,
     division = params:get("rhythm_1")
   }
   params:set_action("rhythm_1",function(x) rhythm_1:set_division(x) end)
   
-  rhythm_2 = sub_lattice:new_pattern{
+  rhythm_2 = sub_lattice:new_sprocket{
     action = function() play("r2") end,
     division = params:get("rhythm_2")
   }
   params:set_action("rhythm_2",function(x) rhythm_2:set_division(x) end)
   
-  rhythm_3 = sub_lattice:new_pattern{
+  rhythm_3 = sub_lattice:new_sprocket{
     action = function() play("r3") end,
     division = params:get("rhythm_3")
   }
   params:set_action("rhythm_3",function(x) rhythm_3:set_division(x) end)
   
-  rhythm_4 = sub_lattice:new_pattern{
+  rhythm_4 = sub_lattice:new_sprocket{
     action = function() play("r4") end,
     division = params:get("rhythm_4")
   }
